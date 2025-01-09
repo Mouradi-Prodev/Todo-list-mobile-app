@@ -128,24 +128,24 @@ fun GreetingWithImage(modifier: Modifier = Modifier) {
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFF7C5BD8),  // rgba(124, 91, 216, 1)
-                            Color(0xFFF4C27F)   // rgba(244, 194, 127, 1)
+                            Color(0xFF7C5BD8),
+                            Color(0xFFF4C27F)
                         )
                     ),
                     shape = RoundedCornerShape(50)
                 ),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Transparent // Make the button container color transparent
+                containerColor = Color.Transparent
             )
         ) {
             Text(
                 text = "Commencer"
             )
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward, // You can replace this with any other icon you prefer
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = "Commencer",
-                modifier = Modifier.size(24.dp), // Icon size
-                tint = Color.White // Icon color (you can change this as needed)
+                modifier = Modifier.size(24.dp),
+                tint = Color.White
             )
         }
     }
