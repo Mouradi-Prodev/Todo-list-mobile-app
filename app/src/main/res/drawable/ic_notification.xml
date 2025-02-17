@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Default icon -->
+    <item android:drawable="@drawable/ic_bell" android:state_enabled="true"/>
+
+<!--    &lt;!&ndash; When the notification is pressed (optional) &ndash;&gt;-->
+<!--    <item android:drawable="@drawable/ic_bell_pressed" android:state_pressed="true"/>-->
+
+</selector>

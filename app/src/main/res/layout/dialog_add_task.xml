@@ -5,6 +5,7 @@
     android:layout_height="wrap_content"
     android:padding="16dp">
 
+    <!-- Task Title Input -->
     <com.google.android.material.textfield.TextInputEditText
         android:id="@+id/taskTitleEditText"
         android:layout_width="0dp"
@@ -13,4 +14,28 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Task Description Input -->
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/taskDescriptionText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="Task Description"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/taskTitleEditText"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Expiry Date Input (Click to Pick a Date) -->
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/expiryDateEditText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="Expiry Date"
+        android:focusable="false"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/taskDescriptionText"
+        app:layout_constraintEnd_toEndOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
