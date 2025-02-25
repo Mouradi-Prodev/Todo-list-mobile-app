@@ -1,68 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
+    android:padding="24dp"
     android:gravity="center"
-    android:background="@color/material_dynamic_primary95">
+    android:background="@drawable/gradient_background">
 
     <ImageView
-        android:id="@+id/splashImage"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:layout_centerInParent="true"
-        android:src="@drawable/splash" />
+        android:id="@+id/logoImageView"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:src="@drawable/unamed"
+        android:layout_marginBottom="24dp" />
+
     <EditText
         android:id="@+id/nameEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Full Name"
-        android:padding="12dp"
-        />
+        android:padding="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/rounded_edittext"
+        android:textColor="@color/primary_text"
+        android:textColorHint="@color/secondary_text" />
 
-    <!-- Email Field -->
     <EditText
         android:id="@+id/registerEmailEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Email"
         android:inputType="textEmailAddress"
-        android:padding="12dp"
+        android:padding="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/rounded_edittext"
+        android:textColor="@color/primary_text"
+        android:textColorHint="@color/secondary_text" />
 
-        android:layout_marginTop="16dp"/>
-
-    <!-- Password Field -->
     <EditText
         android:id="@+id/registerPasswordEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Password"
         android:inputType="textPassword"
-        android:padding="12dp"
+        android:padding="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/rounded_edittext"
+        android:textColor="@color/primary_text"
+        android:textColorHint="@color/secondary_text" />
 
-        android:layout_marginTop="16dp"/>
-
-    <!-- Confirm Password Field -->
     <EditText
         android:id="@+id/confirmPasswordEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Confirm Password"
         android:inputType="textPassword"
-        android:padding="12dp"
-        
-        android:layout_marginTop="16dp"/>
+        android:padding="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/rounded_edittext"
+        android:textColor="@color/primary_text"
+        android:textColorHint="@color/secondary_text" />
 
-    <!-- Register Button -->
     <Button
         android:id="@+id/registerButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Register"
-        android:layout_marginTop="24dp"
-        android:backgroundTint="@color/primary"
-        android:textColor="@color/white"/>
+        android:background="@drawable/ripple_button"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:padding="12dp" />
 
 </LinearLayout>

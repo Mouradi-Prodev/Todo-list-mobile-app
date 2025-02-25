@@ -10,28 +10,24 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-
 import android.widget.LinearLayout
-
-import android.widget.RelativeLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.appcompat.app.AlertDialog
-import androidx.compose.ui.graphics.Color
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.applandeo.materialcalendarview.CalendarDay
 import com.applandeo.materialcalendarview.CalendarView
-import com.applandeo.materialcalendarview.EventDay
 import com.applandeo.materialcalendarview.listeners.OnCalendarDayClickListener
-import com.applandeo.materialcalendarview.listeners.OnCalendarDayLongClickListener
 import com.bumptech.glide.Glide
 import com.example.todo_list.adapter.TaskAdapter
+import com.example.todo_list.helper.TaskItemTouchHelper
 import com.example.todo_list.model.Task
 import com.example.todo_list.notification.TaskNotificationReceiver
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import com.google.android.material.imageview.ShapeableImageView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.FirebaseApp
@@ -53,6 +49,8 @@ class MainActivity : ComponentActivity() {
     private val tasks = mutableListOf<Task>()
     private lateinit var calendarView: CalendarView
     private val taskDates = mutableSetOf<String>()
+    private lateinit var taskSortButton: MaterialButton
+    private lateinit var toggleCalendarButton: MaterialButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,39 +76,53 @@ class MainActivity : ComponentActivity() {
         // Get the CalendarView reference
         calendarView = findViewById(R.id.calendarView)
 
+        // Show tasks for current day on startup
+        showTasksForCurrentDay(isFirstSignIn = true)
+
         calendarView.setOnCalendarDayClickListener(object : OnCalendarDayClickListener {
             override fun onClick(calendarDay: CalendarDay) {
                 showTasksForDate(calendarDay)
             }
-            
         })
-
-
 
         val currentUser = auth.currentUser
         updateUI(currentUser)
 
-        taskAdapter = TaskAdapter(tasks) { task ->
-            deleteTask(task)
-        }
+        taskAdapter = TaskAdapter(
+            tasks,
+            onDeleteClick = { task -> deleteTask(task) },
+            onEditClick = { task -> showEditTaskDialog(task) },
+            onTaskStatusChanged = { task, isCompleted -> updateTaskStatus(task, isCompleted) },
+            onTaskReordered = { updatedTasks -> updateTasksOrder(updatedTasks) }
+        )
 
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = taskAdapter
 
-        val addTaskButton: FloatingActionButton = findViewById(R.id.addTaskButton)
+        val itemTouchHelper = ItemTouchHelper(TaskItemTouchHelper(taskAdapter))
+        itemTouchHelper.attachToRecyclerView(recyclerView)
+
+        // Change FloatingActionButton to ExtendedFloatingActionButton
+        val addTaskButton: ExtendedFloatingActionButton = findViewById(R.id.addTaskButton)
         addTaskButton.setOnClickListener {
             showAddTaskDialog()
         }
 
+        taskSortButton = findViewById(R.id.taskSortButton)
+        taskSortButton.setOnClickListener {
+            showSortOptionsDialog()
+        }
 
-
-
+        // Calendar toggle button
+        toggleCalendarButton = findViewById(R.id.toggleCalendarButton)
+        toggleCalendarButton.setOnClickListener {
+            toggleCalendarVisibility()
+        }
     }
 
     private fun updateUI(user: FirebaseUser?) {
         val signOutButton: MaterialButton = findViewById(R.id.signout)
         val taskLayout: LinearLayout = findViewById(R.id.tasklayout)
-
 
         if (user != null) {
             signOutButton.visibility = View.VISIBLE
@@ -126,36 +138,53 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun showTasksForDate(selectedDate: CalendarDay) {
-        // Extract the Date from CalendarDay
+    private fun showTasksForCurrentDay(isFirstSignIn: Boolean = false) {
+        val calendar = Calendar.getInstance()
+        val currentDay = CalendarDay(calendar)
+        showTasksForDate(currentDay, isFirstSignIn)
+    }
+
+    private fun showTasksForDate(selectedDate: CalendarDay, isFirstSignIn: Boolean = false) {
         val calendar = selectedDate.calendar
         val formattedDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(calendar.time)
 
-        val tasksOnDate = tasks.filter {
-            val taskDate = it.expiryDate?.toDate() // Assuming expiryDate is a Date
-            val taskCalendar = Calendar.getInstance()
-            taskCalendar.time = taskDate
-            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(taskCalendar.time) == formattedDate
+        val tasksOnDate = tasks.filter { task ->
+            val taskDate = task.expiryDate?.toDate()
+            taskDate?.let {
+                SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it) == formattedDate
+            } ?: false
         }
 
-        if (tasksOnDate.isNotEmpty()) {
-            // Show the tasks on the selected date in a dialog or Toast
-            val taskDescriptions = tasksOnDate.joinToString("\n") {
-                "Title: ${it.title}\nDescription: ${it.description}"
-            }
-            showTasksDialog(taskDescriptions)
+        if (isFirstSignIn && tasksOnDate.isEmpty()) {
+            // Do not show the dialog on first sign-in if there are no tasks
+            return
+        }
+
+        val dialogView = layoutInflater.inflate(R.layout.dialog_date_tasks, null)
+        val recyclerView: RecyclerView = dialogView.findViewById(R.id.dateTasksRecyclerView)
+        val dateText: TextView = dialogView.findViewById(R.id.dateText)
+
+        dateText.text = if (tasksOnDate.isNotEmpty()) {
+            "Tasks for $formattedDate"
         } else {
-            Toast.makeText(this, "No tasks on this date", Toast.LENGTH_SHORT).show()
+            "No tasks created on this day"
         }
-    }
 
-    // Display tasks in a dialog
-    private fun showTasksDialog(taskDescriptions: String) {
-        AlertDialog.Builder(this)
-            .setTitle("Tasks for the selected date")
-            .setMessage(taskDescriptions)
-            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
-            .show()
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        val dialogAdapter = TaskAdapter(
+            tasksOnDate.toMutableList(),
+            onDeleteClick = { task ->
+                deleteTask(task)
+            },
+            onEditClick = { task -> showEditTaskDialog(task) },
+            onTaskStatusChanged = { task, isCompleted -> updateTaskStatus(task, isCompleted) },
+            onTaskReordered = { /* Not needed for dialog */ }
+        )
+        recyclerView.adapter = dialogAdapter
+        val builder = AlertDialog.Builder(this)
+        builder.setView(dialogView)
+        builder.setPositiveButton("Close", null)
+        builder.show()
     }
 
     private fun addTaskToFirestore(taskTitle: String, taskDescription: String, expiryDate: Calendar) {
@@ -169,8 +198,6 @@ class MainActivity : ComponentActivity() {
 
         val userId = currentUser.uid
         val taskId = db.collection("tasks").document().id
-
-        // Convert expiryDate to Firestore Timestamp
         val expiryDateTimestamp = Timestamp(expiryDate.time)
 
         val task = Task(
@@ -178,21 +205,25 @@ class MainActivity : ComponentActivity() {
             title = taskTitle,
             description = taskDescription,
             expiryDate = expiryDateTimestamp,
-            userId = userId
+            userId = userId,
+            isCompleted = false,
+            order = tasks.size
         )
 
         db.collection("tasks").document(taskId)
             .set(task)
             .addOnSuccessListener {
-                Toast.makeText(this, "Task added successfully", Toast.LENGTH_SHORT).show()
-
+                tasks.add(task)
+                taskAdapter.notifyDataSetChanged()
                 markDatesOnCalendar()
+                Toast.makeText(this, "Task added successfully", Toast.LENGTH_SHORT).show()
                 scheduleNotification(task)
             }
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Error adding task: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
+
     @SuppressLint("ScheduleExactAlarm")
     private fun scheduleNotification(task: Task) {
         // Ensure the task expiryDate is not null
@@ -226,33 +257,37 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-
     private fun getTasksFromFirestore() {
         val db = FirebaseFirestore.getInstance()
-        val currentUser = FirebaseAuth.getInstance().currentUser
-        if (currentUser == null) {
-            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val userId = currentUser.uid
+        val currentUser = FirebaseAuth.getInstance().currentUser ?: return
 
         db.collection("tasks")
-            .whereEqualTo("userId", userId)
-            .addSnapshotListener { snapshot, exception ->
-                if (exception != null) {
-                    Toast.makeText(this, "Error fetching tasks: ${exception.message}", Toast.LENGTH_SHORT).show()
+            .whereEqualTo("userId", currentUser.uid)
+            .orderBy("order")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("Firestore", "Listen failed", error)
                     return@addSnapshotListener
                 }
 
-                tasks.clear()
-                taskDates.clear()
-                snapshot?.documents?.forEach { document ->
-                    val task = document.toObject(Task::class.java)
-                    task?.let { tasks.add(it) }
+                if (snapshot != null && !snapshot.isEmpty) {
+                    tasks.clear()
+                    taskDates.clear()
+                    for (document in snapshot.documents) {
+                        val task = document.toObject(Task::class.java)
+                        if (task != null) {
+                            // Ensure the ID is set correctly
+                            tasks.add(task.copy(id = document.id))
+                        }
+                    }
+                    taskAdapter.notifyDataSetChanged()
+                    markDatesOnCalendar()
+                } else {
+                    Log.d("Firestore", "Current data: null or empty")
+                    tasks.clear()
+                    taskAdapter.notifyDataSetChanged()
+                    markDatesOnCalendar()
                 }
-                taskAdapter.notifyDataSetChanged()
-                markDatesOnCalendar()
             }
     }
 
@@ -262,7 +297,7 @@ class MainActivity : ComponentActivity() {
         tasks.forEach { task ->
             val taskDate = task.expiryDate?.toDate()
             taskDate?.let {
-                val calendar = Calendar.getInstance().apply { time = taskDate }
+                val calendar = Calendar.getInstance().apply { time = it }
                 val calendarDay = CalendarDay(calendar)
                 calendarDay.backgroundResource = R.drawable.unamed
                 taskDates.add(calendarDay)
@@ -272,13 +307,11 @@ class MainActivity : ComponentActivity() {
 
         if (taskDates.isNotEmpty()) {
             calendarView.setCalendarDays(taskDates)
-
             Log.d("CalendarMark", "Marked ${taskDates.size} dates on the calendar.")
         } else {
             Log.d("CalendarMark", "No dates to mark on the calendar.")
         }
     }
-
 
     private fun showAddTaskDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_task, null)
@@ -320,7 +353,7 @@ class MainActivity : ComponentActivity() {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Add Task")
             .setView(dialogView)
-            .setPositiveButton("Add") { dialog, _ ->
+            .setPositiveButton("Add") { _, _ ->
                 val taskTitle = taskTitleEditText.text.toString()
                 val taskDescription = taskDescriptionEditText.text.toString()
                 val expiryDateText = expiryDateEditText.text.toString()
@@ -334,7 +367,6 @@ class MainActivity : ComponentActivity() {
                 } else {
                     Toast.makeText(this, "Task title and expire date required", Toast.LENGTH_SHORT).show()
                 }
-                dialog.dismiss()
             }
             .setNegativeButton("Cancel") { dialog, _ ->
                 dialog.dismiss()
@@ -348,12 +380,180 @@ class MainActivity : ComponentActivity() {
         db.collection("tasks").document(task.id)
             .delete()
             .addOnSuccessListener {
-                taskAdapter.deleteTask(task)
-                markDatesOnCalendar()
+                tasks.remove(task)
+                taskAdapter.notifyDataSetChanged()
+                markDatesOnCalendar() // Refresh calendar
                 Toast.makeText(this, "Task deleted successfully", Toast.LENGTH_SHORT).show()
             }
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Error deleting task: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    private fun updateTaskStatus(task: Task, isCompleted: Boolean) {
+        val db = FirebaseFirestore.getInstance()
+
+        db.collection("tasks").document(task.id)
+            .update("isCompleted", isCompleted)
+            .addOnSuccessListener {
+                val index = tasks.indexOfFirst { it.id == task.id }
+                if (index != -1) {
+                    val updatedTask = task.copy(isCompleted = isCompleted)
+                    tasks[index] = updatedTask
+                    taskAdapter.notifyItemChanged(index)
+                    Toast.makeText(this, "Task status updated", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error updating task status: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun showEditTaskDialog(task: Task) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_task, null)
+        val taskTitleEditText: TextInputEditText = dialogView.findViewById(R.id.taskTitleEditText)
+        val taskDescriptionEditText: TextInputEditText = dialogView.findViewById(R.id.taskDescriptionText)
+        val expiryDateEditText: TextInputEditText = dialogView.findViewById(R.id.expiryDateEditText)
+
+        // Pre-fill the existing task data
+        taskTitleEditText.setText(task.title)
+        taskDescriptionEditText.setText(task.description)
+        task.expiryDate?.let {
+            val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+            expiryDateEditText.setText(dateFormat.format(it.toDate()))
+        }
+
+        // Reuse the date/time picker logic
+        expiryDateEditText.setOnClickListener {
+            showDateTimePicker(expiryDateEditText)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Edit Task")
+            .setView(dialogView)
+            .setPositiveButton("Update") { _, _ ->
+                val updatedTitle = taskTitleEditText.text.toString()
+                val updatedDescription = taskDescriptionEditText.text.toString()
+                val updatedExpiryDateText = expiryDateEditText.text.toString()
+
+                if (updatedTitle.isNotEmpty() && updatedExpiryDateText.isNotEmpty()) {
+                    val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                    val parsedDate = dateFormat.parse(updatedExpiryDateText)
+                    val updatedExpiryDate = Timestamp(parsedDate)
+
+                    updateTaskInFirestore(
+                        task.copy(
+                            title = updatedTitle,
+                            description = updatedDescription,
+                            expiryDate = updatedExpiryDate
+                        )
+                    )
+                }
+            }
+            .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
+            .show()
+    }
+
+    private fun showDateTimePicker(editText: TextInputEditText) {
+        val calendar = Calendar.getInstance()
+
+        DatePickerDialog(this, { _, year, month, day ->
+            TimePickerDialog(this, { _, hour, minute ->
+                calendar.set(year, month, day, hour, minute)
+                val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                editText.setText(dateFormat.format(calendar.time))
+            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show()
+        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
+    }
+
+    private fun updateTaskInFirestore(updatedTask: Task) {
+        val db = FirebaseFirestore.getInstance()
+
+        db.collection("tasks").document(updatedTask.id)
+            .set(updatedTask)
+            .addOnSuccessListener {
+                val position = tasks.indexOfFirst { it.id == updatedTask.id }
+                if (position != -1) {
+                    tasks[position] = updatedTask
+                    taskAdapter.notifyItemChanged(position)
+                    markDatesOnCalendar() // Refresh calendar
+                    Toast.makeText(this, "Task updated successfully", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error updating task: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun showSortOptionsDialog() {
+        val options = arrayOf("By Date", "By Title", "By Completion Status")
+        AlertDialog.Builder(this)
+            .setTitle("Sort Tasks")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> taskAdapter.sortByDate()
+                    1 -> taskAdapter.sortByTitle()
+                    2 -> taskAdapter.sortByCompletion()
+                }
+                saveTasksOrder() // Replace updateTasksInFirestore with saveTasksOrder
+            }
+            .show()
+    }
+
+    private fun saveTasksOrder() {
+        val db = FirebaseFirestore.getInstance()
+        val batch = db.batch()
+
+        tasks.forEachIndexed { index, task ->
+            val taskRef = db.collection("tasks").document(task.id)
+            batch.update(taskRef, mapOf(
+                "order" to index,
+                "completed" to task.isCompleted,
+                "title" to task.title,
+                "description" to task.description,
+                "expiryDate" to task.expiryDate
+            ))
+        }
+
+        batch.commit()
+            .addOnSuccessListener {
+                Toast.makeText(this, "Tasks order updated", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error updating tasks order: ${e.message}", Toast.LENGTH_SHORT).show()
+                getTasksFromFirestore() // Refresh the list in case of failure
+            }
+    }
+
+    private fun updateTasksOrder(updatedTasks: List<Task>) {
+        val db = FirebaseFirestore.getInstance()
+        val batch = db.batch()
+
+        updatedTasks.forEachIndexed { index, task ->
+            val taskRef = db.collection("tasks").document(task.id)
+            batch.update(taskRef, "order", index)
+        }
+
+        batch.commit()
+            .addOnSuccessListener {
+                tasks.clear()
+                tasks.addAll(updatedTasks)
+                taskAdapter.notifyDataSetChanged()
+                Toast.makeText(this, "Task order updated", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error updating task order: ${e.message}", Toast.LENGTH_SHORT).show()
+                getTasksFromFirestore() // Refresh the list in case of failure
+            }
+    }
+
+    private fun toggleCalendarVisibility() {
+        if (calendarView.visibility == View.VISIBLE) {
+            calendarView.visibility = View.GONE
+            toggleCalendarButton.text = "Show Calendar"
+        } else {
+            calendarView.visibility = View.VISIBLE
+            toggleCalendarButton.text = "Hide Calendar"
+        }
     }
 }

@@ -12,9 +12,11 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.UserProfileChangeRequest
 
 class SignInActivity : AppCompatActivity() {
 
@@ -34,7 +36,7 @@ class SignInActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(getString(R.string.client_id)) // OAuth token from google-services.json
+            .requestIdToken(getString(R.string.client_id)) // Ensure this is correctly set in strings.xml
             .requestEmail()
             .build()
 
@@ -66,7 +68,22 @@ class SignInActivity : AppCompatActivity() {
                 if (task.isSuccessful) {
                     // Sign-in successful
                     val user = auth.currentUser
-                    Toast.makeText(this, "Welcome back, ${user?.email}", Toast.LENGTH_SHORT).show()
+                    if (user?.displayName.isNullOrEmpty()) {
+                        // If display name is not set, update it (you might want to prompt the user for a name)
+                        val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
+                            .build()
+
+                        user?.updateProfile(profileUpdates)
+                            ?.addOnCompleteListener { updateTask ->
+                                if (updateTask.isSuccessful) {
+                                    Toast.makeText(this, "Welcome back, ${user.displayName}", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(this, "Welcome back, ${user?.email}. Failed to update profile.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                    } else {
+                        Toast.makeText(this, "Welcome back, ${user?.displayName}", Toast.LENGTH_SHORT).show()
+                    }
                     startActivity(Intent(this, MainActivity::class.java))
                     finish()
                 } else {

@@ -1,107 +1,140 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.widget.ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/material_dynamic_primary95"
-    android:fillViewport="true">
+    android:background="@color/material_dynamic_primary95">
 
-    <!-- LinearLayout to hold all views inside the ScrollView -->
-    <LinearLayout
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center_horizontal"
-        android:padding="16dp">
+        android:background="@android:color/transparent"
+        app:elevation="0dp">
 
-        <!-- Profile Image -->
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/profileImage"
-            android:layout_width="150dp"
-            android:layout_height="150dp"
-            android:layout_marginTop="40dp"
-            app:shapeAppearanceOverlay="@style/roundedImageView"/>
-
-        <!-- Name Text -->
-        <TextView
-            android:id="@+id/nameTV"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"/>
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center_vertical">
 
-        <!-- Email Text -->
-        <TextView
-            android:id="@+id/mailTV"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"/>
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/profileImage"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                app:shapeAppearanceOverlay="@style/roundedImageView"/>
 
-        <!-- Sign Out Button -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="12dp">
+
+                <TextView
+                    android:id="@+id/nameTV"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/mailTV"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"/>
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/signout"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sign Out"/>
+        </LinearLayout>
+
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/signout"
+            android:id="@+id/toggleCalendarButton"
+            style="?attr/borderlessButtonStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="Sign Out"/>
+            android:text="Hide Calendar"
+            android:textColor="?attr/colorPrimary"
+            android:layout_gravity="end"
+            android:paddingEnd="16dp"/>
 
-        <!-- Task Layout Section -->
+        <com.applandeo.materialcalendarview.CalendarView
+            android:id="@+id/calendarView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxHeight="280dp"
+            android:elevation="4dp"
+            android:background="@drawable/calendar_background"
+            app:headerColor="@color/material_dynamic_primary40"
+            app:headerLabelColor="@color/white"
+            app:selectionColor="@color/material_dynamic_primary90"
+            app:todayLabelColor="@color/material_dynamic_primary40"
+            app:type="one_day_picker"
+            style="@style/CustomCalendarStyle"
+            app:eventsEnabled="true" />
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
         <LinearLayout
             android:id="@+id/tasklayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginTop="20dp">
+            android:paddingHorizontal="16dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="80dp">
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginTop="20dp"
                 android:gravity="center_vertical">
 
                 <TextView
                     android:id="@+id/titleText"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Listes des Tâches"
-                    android:textSize="20sp"
-                    android:layout_weight="1"
-                    android:layout_marginBottom="16dp"/>
+                    android:text="Tasks"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:layout_weight="1"/>
 
-                <!-- Add Task Button -->
-                <com.google.android.material.floatingactionbutton.FloatingActionButton
-                    android:id="@+id/addTaskButton"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/taskSortButton"
+                    style="?attr/materialIconButtonStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:src="@android:drawable/ic_input_add"/>
+                    app:icon="@drawable/ic_sort"/>
             </LinearLayout>
-            <!-- Title Text -->
 
-            <!-- Tasks Card View -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/cardView"
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/tasksRecyclerView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:elevation="4dp"
-                android:radius="16dp">
-
-                <!-- RecyclerView for Task List -->
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/tasksRecyclerView"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="true"
-                    android:overScrollMode="always"
-                    android:scrollbars="vertical" />
-            </androidx.cardview.widget.CardView>
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
+                android:overScrollMode="never"/>
         </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
-        <com.applandeo.materialcalendarview.CalendarView
-            android:id="@+id/calendarView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            app:eventsEnabled="true" />
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/addTaskButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:text="Add Task"
+        app:icon="@android:drawable/ic_input_add"/>
 
-    </LinearLayout>
-</android.widget.ScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
